@@ -1,6 +1,6 @@
 # Data Dashboard
 
-CSV, Excel `.xlsx`, 또는 `Ctrl+V`로 붙여넣은 표 데이터를 브라우저에서 바로 분석하는 React/Vite 웹앱입니다. 여러 데이터셋은 탭으로 동시에 열고 전환할 수 있습니다.
+CSV, Excel `.xlsx`, 또는 `Ctrl+V`로 붙여넣은 표 데이터를 브라우저에서 바로 분석하는 React/Vite 웹앱입니다. 접속하면 기본 샘플 CSV들이 탭으로 열리고, 여러 데이터셋은 탭으로 동시에 전환할 수 있습니다.
 
 ## 로컬 실행
 
@@ -20,6 +20,16 @@ http://localhost:5173/
 ```bash
 npm run dev -- --host 0.0.0.0
 ```
+
+## 기본 샘플 데이터
+
+페이지에 접속하면 repo에 포함된 기본 CSV가 자동으로 탭에 표시됩니다.
+
+- `Sales sample`
+- `Inventory sample`
+- `Customers sample`
+
+이후에도 CSV/Excel 업로드나 Ctrl+V 붙여넣기로 탭을 추가할 수 있습니다.
 
 ## 사용법
 

@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 
@@ -9,6 +9,50 @@ vi.mock("./components/ChartPanel", () => ({
 }));
 
 describe("App", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new Error("default data unavailable in test"))),
+    );
+  });
+
+  it("loads default CSV files as tabs on first visit", async () => {
+    const responses = new Map([
+      ["/test_sql/sample-data/sales.csv", "Region,Sales\nEast,10\nWest,20"],
+      ["/test_sql/sample-data/inventory.csv", "Item,Stock\nA,4\nB,6"],
+      ["/test_sql/sample-data/customers.csv", "Segment,Customers\nRetail,12\nEnterprise,5"],
+      ["/sample-data/sales.csv", "Region,Sales\nEast,10\nWest,20"],
+      ["/sample-data/inventory.csv", "Item,Stock\nA,4\nB,6"],
+      ["/sample-data/customers.csv", "Segment,Customers\nRetail,12\nEnterprise,5"],
+    ]);
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        const text = responses.get(url);
+        if (text == null) {
+          return Promise.reject(new Error(`Unexpected URL: ${url}`));
+        }
+
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve(text),
+        });
+      }),
+    );
+
+    render(<App />);
+
+    expect(await screen.findByRole("tab", { name: "Sales sample" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Inventory sample" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Customers sample" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Customers sample" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
   it("loads pasted table data and shows stats", async () => {
     const user = userEvent.setup();
     render(<App />);

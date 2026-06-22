@@ -1,0 +1,7 @@
+Item,Category,Stock,ReorderPoint
+Notebook,Electronics,42,15
+Monitor,Electronics,18,10
+Keyboard,Accessories,75,25
+Mouse,Accessories,120,30
+Desk,Furniture,9,5
+Chair,Furniture,14,6

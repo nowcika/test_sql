@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import "./styles.css";
 import { AnalysisControls } from "./components/AnalysisControls";
@@ -13,6 +13,7 @@ import {
   calculateSingleColumnStats,
   calculateTwoColumnStats,
 } from "./lib/statistics";
+import { loadDefaultDatasets } from "./lib/defaultDatasets";
 import type { AnalysisMode, TableData } from "./types";
 
 type AnalysisSettings = {
@@ -39,6 +40,7 @@ export default function App() {
   const [settingsByTabId, setSettingsByTabId] = useState<Record<string, AnalysisSettings>>({});
   const [error, setError] = useState<string | null>(null);
   const nextTabId = useRef(1);
+  const defaultDatasetsLoaded = useRef(false);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
   const table = activeTab?.table ?? null;
@@ -111,6 +113,21 @@ export default function App() {
       return nextTabs;
     });
   }
+
+  useEffect(() => {
+    if (defaultDatasetsLoaded.current) {
+      return;
+    }
+
+    defaultDatasetsLoaded.current = true;
+    void loadDefaultDatasets()
+      .then((defaultTables) => {
+        handleLoad(defaultTables);
+      })
+      .catch(() => {
+        setError("기본 CSV 데이터를 불러오지 못했습니다.");
+      });
+  }, []);
 
   const stats = useMemo(() => {
     if (!table || !xKey) {
