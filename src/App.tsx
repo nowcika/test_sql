@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import "./styles.css";
 import { AnalysisControls } from "./components/AnalysisControls";
@@ -15,21 +15,48 @@ import {
 } from "./lib/statistics";
 import type { AnalysisMode, TableData } from "./types";
 
+type AnalysisSettings = {
+  mode: AnalysisMode;
+  xKey: string;
+  yKey: string;
+};
+
 function makeTab(id: string, table: TableData): DatasetTab {
   return { id, table };
+}
+
+function initialSettings(table: TableData): AnalysisSettings {
+  return {
+    mode: "single",
+    xKey: table.columns[0]?.key ?? "",
+    yKey: table.columns[1]?.key ?? table.columns[0]?.key ?? "",
+  };
 }
 
 export default function App() {
   const [tabs, setTabs] = useState<DatasetTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
-  const [mode, setMode] = useState<AnalysisMode>("single");
-  const [xKey, setXKey] = useState("");
-  const [yKey, setYKey] = useState("");
+  const [settingsByTabId, setSettingsByTabId] = useState<Record<string, AnalysisSettings>>({});
   const [error, setError] = useState<string | null>(null);
   const nextTabId = useRef(1);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
   const table = activeTab?.table ?? null;
+  const settings = activeTabId ? settingsByTabId[activeTabId] : null;
+  const mode = settings?.mode ?? "single";
+  const xKey = settings?.xKey ?? "";
+  const yKey = settings?.yKey ?? "";
+
+  function updateActiveSettings(update: (settings: AnalysisSettings) => AnalysisSettings) {
+    if (!activeTabId || !settings) {
+      return;
+    }
+
+    setSettingsByTabId((currentSettings) => ({
+      ...currentSettings,
+      [activeTabId]: update(settings),
+    }));
+  }
 
   function handleLoad(nextTables: TableData[]) {
     if (nextTables.length === 0) {
@@ -54,6 +81,13 @@ export default function App() {
         });
       });
 
+      setSettingsByTabId((currentSettings) => {
+        const nextSettings = { ...currentSettings };
+        newTabs.forEach((tab) => {
+          nextSettings[tab.id] = initialSettings(tab.table);
+        });
+        return nextSettings;
+      });
       setActiveTabId(newTabs[newTabs.length - 1].id);
       return [...currentTabs, ...newTabs];
     });
@@ -64,6 +98,11 @@ export default function App() {
       const closingIndex = currentTabs.findIndex((tab) => tab.id === tabId);
       const nextTabs = currentTabs.filter((tab) => tab.id !== tabId);
 
+      setSettingsByTabId((currentSettings) => {
+        const { [tabId]: _removed, ...nextSettings } = currentSettings;
+        return nextSettings;
+      });
+
       if (activeTabId === tabId) {
         const fallbackTab = nextTabs[Math.min(closingIndex, nextTabs.length - 1)] ?? null;
         setActiveTabId(fallbackTab?.id ?? null);
@@ -72,23 +111,6 @@ export default function App() {
       return nextTabs;
     });
   }
-
-  useEffect(() => {
-    if (!table) {
-      setXKey("");
-      setYKey("");
-      return;
-    }
-
-    const columnKeys = table.columns.map((column) => column.key);
-    if (!columnKeys.includes(xKey)) {
-      setXKey(columnKeys[0] ?? "");
-    }
-
-    if (!columnKeys.includes(yKey)) {
-      setYKey(columnKeys[1] ?? columnKeys[0] ?? "");
-    }
-  }, [table, xKey, yKey]);
 
   const stats = useMemo(() => {
     if (!table || !xKey) {
@@ -137,9 +159,24 @@ export default function App() {
               mode={mode}
               xKey={xKey}
               yKey={yKey}
-              onModeChange={setMode}
-              onXKeyChange={setXKey}
-              onYKeyChange={setYKey}
+              onModeChange={(nextMode) =>
+                updateActiveSettings((currentSettings) => ({
+                  ...currentSettings,
+                  mode: nextMode,
+                }))
+              }
+              onXKeyChange={(nextXKey) =>
+                updateActiveSettings((currentSettings) => ({
+                  ...currentSettings,
+                  xKey: nextXKey,
+                }))
+              }
+              onYKeyChange={(nextYKey) =>
+                updateActiveSettings((currentSettings) => ({
+                  ...currentSettings,
+                  yKey: nextYKey,
+                }))
+              }
             />
             <section className="analysis-grid">
               <StatsPanel stats={stats} />

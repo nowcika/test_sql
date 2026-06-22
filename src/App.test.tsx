@@ -45,4 +45,32 @@ describe("App", () => {
       "true",
     );
   });
+
+  it("keeps analysis settings scoped to each tab", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const pasteTarget = screen.getByLabelText("표 데이터 붙여넣기");
+    await user.click(pasteTarget);
+    await user.paste("Region\tSales\nEast\t10\nWest\t20");
+
+    await user.selectOptions(screen.getByLabelText("컬럼"), "sales");
+    expect(screen.getByLabelText("컬럼")).toHaveValue("sales");
+    expect(screen.getByText("Sum")).toBeInTheDocument();
+
+    await user.click(pasteTarget);
+    await user.paste("Item\tStock\nA\t4\nB\t6");
+    expect(await screen.findByRole("tab", { name: /Pasted table 2/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByLabelText("컬럼")).toHaveValue("item");
+
+    await user.selectOptions(screen.getByLabelText("컬럼"), "stock");
+    expect(screen.getByLabelText("컬럼")).toHaveValue("stock");
+
+    await user.click(screen.getByRole("tab", { name: /Pasted table 1/ }));
+    expect(screen.getByLabelText("컬럼")).toHaveValue("sales");
+  });
+
 });
