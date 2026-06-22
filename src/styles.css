@@ -257,6 +257,66 @@ th {
   background: #f9fbfa;
 }
 
+
+.chart-options {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(180px, 240px) 1fr;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.chart-options label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chart-options select {
+  min-height: 40px;
+  min-width: 0;
+  border: 1px solid #cbd6d2;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: white;
+}
+
+.chart-options fieldset {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.chart-options legend {
+  margin-bottom: 6px;
+  color: #65736f;
+  font-size: 0.84rem;
+}
+
+.metric-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.metric-option {
+  min-height: 34px;
+  display: inline-flex;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #d6dedb;
+  border-radius: 6px;
+  padding: 0 9px;
+  background: #f9fbfa;
+  white-space: nowrap;
+}
+
+.metric-option input {
+  margin: 0;
+}
+
 @media (max-width: 820px) {
   .app-shell {
     padding: 14px;
@@ -265,6 +325,7 @@ th {
   .input-panel,
   .summary-grid,
   .controls,
+  .chart-options,
   .analysis-grid {
     grid-template-columns: 1fr;
   }

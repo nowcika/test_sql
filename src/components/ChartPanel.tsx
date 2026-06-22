@@ -2,6 +2,11 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Scatter,
   ScatterChart,
@@ -11,16 +16,64 @@ import {
 } from "recharts";
 
 import {
+  buildHistogramData,
   buildSingleColumnChartData,
   buildTwoColumnChartData,
 } from "../lib/chartData";
-import type { SingleColumnStats, TwoColumnStats } from "../types";
+import type { ChartType, GroupedMetricKey, SingleColumnStats, TwoColumnStats } from "../types";
 
 type ChartPanelProps = {
   stats: SingleColumnStats | TwoColumnStats | null;
+  chartType?: ChartType;
+  groupedMetric?: GroupedMetricKey;
 };
 
-export function ChartPanel({ stats }: ChartPanelProps) {
+const colors = ["#2d6f65", "#5f8f3e", "#b46b3c", "#6b6fb4", "#b45273", "#4b8da8"];
+
+function BarLikeChart({ data, type, label }: { data: unknown[]; type: "bar" | "line"; label: string }) {
+  return (
+    <section className="panel chart-panel" aria-label={label}>
+      <ResponsiveContainer width="100%" height={320}>
+        {type === "line" ? (
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="label" />
+            <YAxis />
+            <Tooltip />
+            <Line type="monotone" dataKey="value" stroke="#2d6f65" strokeWidth={2} dot />
+          </LineChart>
+        ) : (
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="label" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="value" fill="#2d6f65" />
+          </BarChart>
+        )}
+      </ResponsiveContainer>
+    </section>
+  );
+}
+
+function PieLikeChart({ data }: { data: { label: string; value: number }[] }) {
+  return (
+    <section className="panel chart-panel" aria-label="파이 차트">
+      <ResponsiveContainer width="100%" height={320}>
+        <PieChart>
+          <Tooltip />
+          <Pie data={data} dataKey="value" nameKey="label" outerRadius={110} label>
+            {data.map((entry, index) => (
+              <Cell key={entry.label} fill={colors[index % colors.length]} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+    </section>
+  );
+}
+
+export function ChartPanel({ stats, chartType = "bar", groupedMetric = "mean" }: ChartPanelProps) {
   if (!stats) {
     return (
       <section className="panel chart-panel">
@@ -30,6 +83,13 @@ export function ChartPanel({ stats }: ChartPanelProps) {
   }
 
   if (stats.kind === "numeric-relationship") {
+    if (chartType === "line") {
+      const data = [...stats.points]
+        .sort((left, right) => left.x - right.x)
+        .map((point) => ({ label: String(point.x), value: point.y }));
+      return <BarLikeChart data={data} type="line" label="라인 차트" />;
+    }
+
     return (
       <section className="panel chart-panel" aria-label="숫자 관계 차트">
         <ResponsiveContainer width="100%" height={320}>
@@ -46,39 +106,21 @@ export function ChartPanel({ stats }: ChartPanelProps) {
   }
 
   if (stats.kind === "grouped-numeric") {
-    const chartData = buildTwoColumnChartData(stats) as {
-      label: string;
-      mean: number;
-      sum: number;
-      count: number;
-    }[];
-
-    return (
-      <section className="panel chart-panel" aria-label="그룹별 평균 차트">
-        <ResponsiveContainer width="100%" height={320}>
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="label" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="mean" fill="#2d6f65" />
-          </BarChart>
-        </ResponsiveContainer>
-      </section>
-    );
+    const chartData = buildTwoColumnChartData(stats, groupedMetric) as { label: string; value: number }[];
+    if (chartType === "pie") {
+      return <PieLikeChart data={chartData} />;
+    }
+    return <BarLikeChart data={chartData} type={chartType === "line" ? "line" : "bar"} label={chartType === "line" ? "라인 차트" : "그룹 차트"} />;
   }
 
-  return (
-    <section className="panel chart-panel" aria-label="단일 컬럼 차트">
-      <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={buildSingleColumnChartData(stats)}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="label" />
-          <YAxis />
-          <Tooltip />
-          <Bar dataKey="value" fill="#2d6f65" />
-        </BarChart>
-      </ResponsiveContainer>
-    </section>
-  );
+  if (stats.kind === "numeric" && chartType === "histogram") {
+    return <BarLikeChart data={buildHistogramData(stats)} type="bar" label="히스토그램 차트" />;
+  }
+
+  const data = buildSingleColumnChartData(stats) as { label: string; value: number }[];
+  if (chartType === "pie" && stats.kind === "category") {
+    return <PieLikeChart data={data} />;
+  }
+
+  return <BarLikeChart data={data} type={chartType === "line" ? "line" : "bar"} label={chartType === "line" ? "라인 차트" : "단일 컬럼 차트"} />;
 }

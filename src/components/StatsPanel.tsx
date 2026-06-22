@@ -1,7 +1,8 @@
-import type { SingleColumnStats, TwoColumnStats } from "../types";
+import type { MetricKey, SingleColumnStats, TwoColumnStats } from "../types";
 
 type StatsPanelProps = {
   stats: SingleColumnStats | TwoColumnStats | null;
+  visibleMetrics?: MetricKey[];
 };
 
 function formatNumber(value: number): string {
@@ -19,7 +20,11 @@ function StatItem({ label, value }: { label: string; value: number }) {
   );
 }
 
-export function StatsPanel({ stats }: StatsPanelProps) {
+function isVisible(visibleMetrics: MetricKey[] | undefined, metric: MetricKey): boolean {
+  return visibleMetrics == null || visibleMetrics.includes(metric);
+}
+
+export function StatsPanel({ stats, visibleMetrics }: StatsPanelProps) {
   if (!stats) {
     return <section className="panel">분석할 컬럼을 선택하세요.</section>;
   }
@@ -27,13 +32,15 @@ export function StatsPanel({ stats }: StatsPanelProps) {
   if (stats.kind === "numeric") {
     return (
       <section className="panel stats-grid" aria-label="숫자 통계">
-        <StatItem label="Count" value={stats.count} />
-        <StatItem label="Missing" value={stats.missingCount} />
-        <StatItem label="Sum" value={stats.sum} />
-        <StatItem label="Mean" value={stats.mean} />
-        <StatItem label="Median" value={stats.median} />
-        <StatItem label="Min" value={stats.min} />
-        <StatItem label="Max" value={stats.max} />
+        {isVisible(visibleMetrics, "count") ? <StatItem label="Count" value={stats.count} /> : null}
+        {isVisible(visibleMetrics, "missing") ? <StatItem label="Missing" value={stats.missingCount} /> : null}
+        {isVisible(visibleMetrics, "sum") ? <StatItem label="Sum" value={stats.sum} /> : null}
+        {isVisible(visibleMetrics, "mean") ? <StatItem label="Mean" value={stats.mean} /> : null}
+        {isVisible(visibleMetrics, "median") ? <StatItem label="Median" value={stats.median} /> : null}
+        {isVisible(visibleMetrics, "variance") ? <StatItem label="Variance" value={stats.variance} /> : null}
+        {isVisible(visibleMetrics, "standardDeviation") ? <StatItem label="Std dev" value={stats.standardDeviation} /> : null}
+        {isVisible(visibleMetrics, "min") ? <StatItem label="Min" value={stats.min} /> : null}
+        {isVisible(visibleMetrics, "max") ? <StatItem label="Max" value={stats.max} /> : null}
       </section>
     );
   }
@@ -42,18 +49,20 @@ export function StatsPanel({ stats }: StatsPanelProps) {
     return (
       <section className="panel" aria-label="범주 통계">
         <div className="stats-grid">
-          <StatItem label="Count" value={stats.count} />
-          <StatItem label="Missing" value={stats.missingCount} />
-          <StatItem label="Unique" value={stats.uniqueCount} />
+          {isVisible(visibleMetrics, "count") ? <StatItem label="Count" value={stats.count} /> : null}
+          {isVisible(visibleMetrics, "missing") ? <StatItem label="Missing" value={stats.missingCount} /> : null}
+          {isVisible(visibleMetrics, "unique") ? <StatItem label="Unique" value={stats.uniqueCount} /> : null}
         </div>
-        <ul className="rank-list">
-          {stats.topValues.map((entry) => (
-            <li key={entry.value}>
-              <span>{entry.value}</span>
-              <strong>{formatNumber(entry.count)}</strong>
-            </li>
-          ))}
-        </ul>
+        {isVisible(visibleMetrics, "topValues") ? (
+          <ul className="rank-list">
+            {stats.topValues.map((entry) => (
+              <li key={entry.value}>
+                <span>{entry.value}</span>
+                <strong>{formatNumber(entry.count)}</strong>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </section>
     );
   }
@@ -61,8 +70,8 @@ export function StatsPanel({ stats }: StatsPanelProps) {
   if (stats.kind === "numeric-relationship") {
     return (
       <section className="panel stats-grid" aria-label="숫자 관계 통계">
-        <StatItem label="Pairs" value={stats.pairedCount} />
-        <StatItem label="Missing pairs" value={stats.missingPairCount} />
+        {isVisible(visibleMetrics, "pairedCount") ? <StatItem label="Pairs" value={stats.pairedCount} /> : null}
+        {isVisible(visibleMetrics, "missingPairCount") ? <StatItem label="Missing pairs" value={stats.missingPairCount} /> : null}
       </section>
     );
   }
@@ -73,7 +82,19 @@ export function StatsPanel({ stats }: StatsPanelProps) {
         {stats.groups.map((group) => (
           <li key={group.label}>
             <span>{group.label}</span>
-            <strong>{formatNumber(group.mean)}</strong>
+            <strong>
+              {[
+                isVisible(visibleMetrics, "mean") ? `Mean ${formatNumber(group.mean)}` : null,
+                isVisible(visibleMetrics, "sum") ? `Sum ${formatNumber(group.sum)}` : null,
+                isVisible(visibleMetrics, "count") ? `Count ${formatNumber(group.count)}` : null,
+                isVisible(visibleMetrics, "min") ? `Min ${formatNumber(group.min)}` : null,
+                isVisible(visibleMetrics, "max") ? `Max ${formatNumber(group.max)}` : null,
+                isVisible(visibleMetrics, "variance") ? `Variance ${formatNumber(group.variance)}` : null,
+                isVisible(visibleMetrics, "standardDeviation") ? `Std dev ${formatNumber(group.standardDeviation)}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </strong>
           </li>
         ))}
       </ul>

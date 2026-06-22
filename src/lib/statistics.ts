@@ -26,6 +26,33 @@ const asNumber = (value: CellValue): number | null => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const variance = (values: number[], mean: number): number =>
+  values.reduce((total, value) => total + (value - mean) ** 2, 0) / values.length;
+
+const buildHistogramBins = (values: number[], min: number, max: number) => {
+  if (min === max) {
+    return [{ label: String(min), count: values.length }];
+  }
+
+  const bucketCount = Math.min(10, Math.ceil(Math.sqrt(values.length)));
+  const width = (max - min) / bucketCount;
+  const buckets = Array.from({ length: bucketCount }, (_, index) => ({
+    start: min + width * index,
+    end: min + width * (index + 1),
+    count: 0,
+  }));
+
+  for (const value of values) {
+    const bucketIndex = Math.min(bucketCount - 1, Math.floor((value - min) / width));
+    buckets[bucketIndex].count += 1;
+  }
+
+  return buckets.map((bucket) => ({
+    label: `${bucket.start.toLocaleString(undefined, { maximumFractionDigits: 2 })}-${bucket.end.toLocaleString(undefined, { maximumFractionDigits: 2 })}`,
+    count: bucket.count,
+  }));
+};
+
 const median = (values: number[]): number => {
   const sorted = [...values].sort((left, right) => left - right);
   const middle = Math.floor(sorted.length / 2);
@@ -103,15 +130,21 @@ export const calculateSingleColumnStats = (
       }
     }
 
+    const mean = sum / numericValues.length;
+    const valueVariance = variance(numericValues, mean);
+
     const stats: NumericStats = {
       kind: "numeric",
       count: numericValues.length,
       missingCount,
       sum,
-      mean: sum / numericValues.length,
+      mean,
       median: median(numericValues),
+      variance: valueVariance,
+      standardDeviation: Math.sqrt(valueVariance),
       min,
       max,
+      histogramBins: buildHistogramBins(numericValues, min, max),
     };
     return stats;
   }
@@ -171,7 +204,7 @@ export const calculateTwoColumnStats = (
 
   const categoryColumn = firstColumn.inferredType === "number" ? secondColumn : firstColumn;
   const numericColumn = firstColumn.inferredType === "number" ? firstColumn : secondColumn;
-  const groups = new Map<string, { label: string; count: number; sum: number }>();
+  const groups = new Map<string, { label: string; values: number[] }>();
 
   for (const row of table.rows) {
     const categoryValue = row[categoryColumn.key];
@@ -182,16 +215,37 @@ export const calculateTwoColumnStats = (
     }
 
     const label = valueLabel(categoryValue);
-    const group = groups.get(label) ?? { label, count: 0, sum: 0 };
-    group.count += 1;
-    group.sum += numericValue;
+    const group = groups.get(label) ?? { label, values: [] };
+    group.values.push(numericValue);
     groups.set(label, group);
   }
 
   const groupedStats: GroupedNumericStats = {
     kind: "grouped-numeric",
     groups: [...groups.values()]
-      .map((group) => ({ ...group, mean: group.sum / group.count }))
+      .map((group) => {
+        const sum = group.values.reduce((total, value) => total + value, 0);
+        const mean = sum / group.values.length;
+        const valueVariance = variance(group.values, mean);
+
+        let min = Number.POSITIVE_INFINITY;
+        let max = Number.NEGATIVE_INFINITY;
+        for (const value of group.values) {
+          min = Math.min(min, value);
+          max = Math.max(max, value);
+        }
+
+        return {
+          label: group.label,
+          count: group.values.length,
+          sum,
+          mean,
+          min,
+          max,
+          variance: valueVariance,
+          standardDeviation: Math.sqrt(valueVariance),
+        };
+      })
       .sort((left, right) => right.mean - left.mean || left.label.localeCompare(right.label))
       .slice(0, 20),
   };

@@ -46,6 +46,12 @@ describe("calculateSingleColumnStats", () => {
       median: 20,
       min: 10,
       max: 30,
+      variance: 66.66666666666667,
+      standardDeviation: 8.16496580927726,
+      histogramBins: [
+        { label: "10-20", count: 1 },
+        { label: "20-30", count: 2 },
+      ],
     });
   });
 
@@ -108,8 +114,8 @@ describe("calculateTwoColumnStats", () => {
     expect(calculateTwoColumnStats(inferred, "region", "sales")).toEqual({
       kind: "grouped-numeric",
       groups: [
-        { label: "West", count: 1, sum: 30, mean: 30 },
-        { label: "East", count: 2, sum: 30, mean: 15 },
+        { label: "West", count: 1, sum: 30, mean: 30, min: 30, max: 30, variance: 0, standardDeviation: 0 },
+        { label: "East", count: 2, sum: 30, mean: 15, min: 10, max: 20, variance: 25, standardDeviation: 5 },
       ],
     });
   });

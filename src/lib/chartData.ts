@@ -1,4 +1,4 @@
-import type { SingleColumnStats, TwoColumnStats } from "../types";
+import type { GroupedMetricKey, NumericStats, SingleColumnStats, TwoColumnStats } from "../types";
 
 export const buildSingleColumnChartData = (stats: SingleColumnStats) => {
   if (stats.kind === "category") {
@@ -16,15 +16,29 @@ export const buildSingleColumnChartData = (stats: SingleColumnStats) => {
   ];
 };
 
-export const buildTwoColumnChartData = (stats: TwoColumnStats) => {
+export const buildHistogramData = (stats: NumericStats) =>
+  stats.histogramBins.map((bin) => ({
+    label: bin.label,
+    value: bin.count,
+  }));
+
+export const buildTwoColumnChartData = (
+  stats: TwoColumnStats,
+  groupedMetric: GroupedMetricKey = "mean",
+) => {
   if (stats.kind === "numeric-relationship") {
     return stats.points;
   }
 
   return stats.groups.map((group) => ({
     label: group.label,
+    value: group[groupedMetric],
     mean: group.mean,
     sum: group.sum,
     count: group.count,
+    min: group.min,
+    max: group.max,
+    variance: group.variance,
+    standardDeviation: group.standardDeviation,
   }));
 };

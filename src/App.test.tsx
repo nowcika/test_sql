@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
 vi.mock("./components/ChartPanel", () => ({
-  ChartPanel: () => <section aria-label="chart">Chart</section>,
+  ChartPanel: ({ chartType }: { chartType?: string }) => (
+    <section aria-label={chartType === "histogram" ? "히스토그램 차트" : "chart"}>Chart</section>
+  ),
 }));
 
 describe("App", () => {
@@ -100,7 +102,7 @@ describe("App", () => {
 
     await user.selectOptions(screen.getByLabelText("컬럼"), "sales");
     expect(screen.getByLabelText("컬럼")).toHaveValue("sales");
-    expect(screen.getByText("Sum")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("숫자 통계")).getByText("Sum")).toBeInTheDocument();
 
     await user.click(pasteTarget);
     await user.paste("Item\tStock\nA\t4\nB\t6");
@@ -115,6 +117,42 @@ describe("App", () => {
 
     await user.click(screen.getByRole("tab", { name: /Pasted table 1/ }));
     expect(screen.getByLabelText("컬럼")).toHaveValue("sales");
+  });
+
+
+  it("lets users choose metrics and chart type per tab", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const pasteTarget = screen.getByLabelText("표 데이터 붙여넣기");
+    await user.click(pasteTarget);
+    await user.paste("Region\tSales\nEast\t10\nWest\t20");
+
+    await user.selectOptions(screen.getByLabelText("컬럼"), "sales");
+    let numericStats = screen.getByLabelText("숫자 통계");
+    expect(within(numericStats).getByText("Variance")).toBeInTheDocument();
+    expect(within(numericStats).getByText("Std dev")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "Variance" }));
+    numericStats = screen.getByLabelText("숫자 통계");
+    expect(within(numericStats).queryByText("Variance")).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("차트 타입"), "histogram");
+    expect(screen.getByLabelText("차트 타입")).toHaveValue("histogram");
+    expect(screen.getByLabelText("히스토그램 차트")).toBeInTheDocument();
+
+    await user.click(pasteTarget);
+    await user.paste("Item\tStock\nA\t4\nB\t6");
+    expect(await screen.findByRole("tab", { name: /Pasted table 2/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByLabelText("차트 타입")).toHaveValue("bar");
+
+    await user.click(screen.getByRole("tab", { name: /Pasted table 1/ }));
+    expect(screen.getByLabelText("차트 타입")).toHaveValue("histogram");
+    numericStats = screen.getByLabelText("숫자 통계");
+    expect(within(numericStats).queryByText("Variance")).not.toBeInTheDocument();
   });
 
 });

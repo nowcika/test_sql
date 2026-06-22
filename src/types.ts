@@ -18,6 +18,32 @@ export type TableData = {
 
 export type AnalysisMode = "single" | "relationship";
 
+export type ChartType = "bar" | "line" | "pie" | "scatter" | "histogram";
+
+export type MetricKey =
+  | "count"
+  | "missing"
+  | "sum"
+  | "mean"
+  | "median"
+  | "variance"
+  | "standardDeviation"
+  | "min"
+  | "max"
+  | "unique"
+  | "topValues"
+  | "pairedCount"
+  | "missingPairCount";
+
+export type GroupedMetricKey =
+  | "count"
+  | "sum"
+  | "mean"
+  | "min"
+  | "max"
+  | "variance"
+  | "standardDeviation";
+
 export type NumericStats = {
   kind: "numeric";
   count: number;
@@ -25,8 +51,11 @@ export type NumericStats = {
   sum: number;
   mean: number;
   median: number;
+  variance: number;
+  standardDeviation: number;
   min: number;
   max: number;
+  histogramBins: { label: string; count: number }[];
 };
 
 export type CategoryStats = {
@@ -48,7 +77,16 @@ export type NumericRelationshipStats = {
 
 export type GroupedNumericStats = {
   kind: "grouped-numeric";
-  groups: { label: string; count: number; sum: number; mean: number }[];
+  groups: {
+    label: string;
+    count: number;
+    sum: number;
+    mean: number;
+    min: number;
+    max: number;
+    variance: number;
+    standardDeviation: number;
+  }[];
 };
 
 export type TwoColumnStats = NumericRelationshipStats | GroupedNumericStats;

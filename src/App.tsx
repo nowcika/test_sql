@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./styles.css";
 import { AnalysisControls } from "./components/AnalysisControls";
 import { ChartPanel } from "./components/ChartPanel";
+import { ChartOptions } from "./components/ChartOptions";
 import { DataInput } from "./components/DataInput";
 import { DataPreview } from "./components/DataPreview";
 import { DatasetSummary } from "./components/DatasetSummary";
@@ -14,13 +15,39 @@ import {
   calculateTwoColumnStats,
 } from "./lib/statistics";
 import { loadDefaultDatasets } from "./lib/defaultDatasets";
-import type { AnalysisMode, TableData } from "./types";
+import { normalizeChartType } from "./lib/analysisOptions";
+import type {
+  AnalysisMode,
+  ChartType,
+  GroupedMetricKey,
+  MetricKey,
+  TableData,
+} from "./types";
 
 type AnalysisSettings = {
   mode: AnalysisMode;
   xKey: string;
   yKey: string;
+  chartType: ChartType;
+  visibleMetrics: MetricKey[];
+  groupedMetric: GroupedMetricKey;
 };
+
+const allMetricKeys: MetricKey[] = [
+  "count",
+  "missing",
+  "sum",
+  "mean",
+  "median",
+  "variance",
+  "standardDeviation",
+  "min",
+  "max",
+  "unique",
+  "topValues",
+  "pairedCount",
+  "missingPairCount",
+];
 
 function makeTab(id: string, table: TableData): DatasetTab {
   return { id, table };
@@ -31,6 +58,9 @@ function initialSettings(table: TableData): AnalysisSettings {
     mode: "single",
     xKey: table.columns[0]?.key ?? "",
     yKey: table.columns[1]?.key ?? table.columns[0]?.key ?? "",
+    chartType: "bar",
+    visibleMetrics: allMetricKeys,
+    groupedMetric: "mean",
   };
 }
 
@@ -48,6 +78,7 @@ export default function App() {
   const mode = settings?.mode ?? "single";
   const xKey = settings?.xKey ?? "";
   const yKey = settings?.yKey ?? "";
+  const groupedMetric = settings?.groupedMetric ?? "mean";
 
   function updateActiveSettings(update: (settings: AnalysisSettings) => AnalysisSettings) {
     if (!activeTabId || !settings) {
@@ -149,6 +180,9 @@ export default function App() {
     }
   }, [mode, table, xKey, yKey]);
 
+  const chartType = stats ? normalizeChartType(stats, settings?.chartType ?? "bar") : "bar";
+  const visibleMetrics = settings?.visibleMetrics ?? allMetricKeys;
+
   return (
     <main className="app-shell">
       <section className="workspace">
@@ -195,9 +229,33 @@ export default function App() {
                 }))
               }
             />
+            <ChartOptions
+              stats={stats}
+              chartType={chartType}
+              visibleMetrics={visibleMetrics}
+              groupedMetric={groupedMetric}
+              onChartTypeChange={(nextChartType) =>
+                updateActiveSettings((currentSettings) => ({
+                  ...currentSettings,
+                  chartType: nextChartType,
+                }))
+              }
+              onVisibleMetricsChange={(nextVisibleMetrics) =>
+                updateActiveSettings((currentSettings) => ({
+                  ...currentSettings,
+                  visibleMetrics: nextVisibleMetrics,
+                }))
+              }
+              onGroupedMetricChange={(nextGroupedMetric) =>
+                updateActiveSettings((currentSettings) => ({
+                  ...currentSettings,
+                  groupedMetric: nextGroupedMetric,
+                }))
+              }
+            />
             <section className="analysis-grid">
-              <StatsPanel stats={stats} />
-              <ChartPanel stats={stats} />
+              <StatsPanel stats={stats} visibleMetrics={visibleMetrics} />
+              <ChartPanel stats={stats} chartType={chartType} groupedMetric={groupedMetric} />
             </section>
             <DataPreview table={table} />
           </>
