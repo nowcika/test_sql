@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import "./styles.css";
 import { AnalysisControls } from "./components/AnalysisControls";
@@ -6,6 +6,7 @@ import { ChartPanel } from "./components/ChartPanel";
 import { DataInput } from "./components/DataInput";
 import { DataPreview } from "./components/DataPreview";
 import { DatasetSummary } from "./components/DatasetSummary";
+import { DatasetTabs, type DatasetTab } from "./components/DatasetTabs";
 import { ErrorMessage } from "./components/ErrorMessage";
 import { StatsPanel } from "./components/StatsPanel";
 import {
@@ -14,19 +15,80 @@ import {
 } from "./lib/statistics";
 import type { AnalysisMode, TableData } from "./types";
 
+function makeTab(id: string, table: TableData): DatasetTab {
+  return { id, table };
+}
+
 export default function App() {
-  const [table, setTable] = useState<TableData | null>(null);
+  const [tabs, setTabs] = useState<DatasetTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [mode, setMode] = useState<AnalysisMode>("single");
   const [xKey, setXKey] = useState("");
   const [yKey, setYKey] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const nextTabId = useRef(1);
 
-  function handleLoad(nextTable: TableData) {
-    setTable(nextTable);
+  const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
+  const table = activeTab?.table ?? null;
+
+  function handleLoad(nextTables: TableData[]) {
+    if (nextTables.length === 0) {
+      return;
+    }
+
     setError(null);
-    setXKey(nextTable.columns[0]?.key ?? "");
-    setYKey(nextTable.columns[1]?.key ?? nextTable.columns[0]?.key ?? "");
+    setTabs((currentTabs) => {
+      const pastedCount = currentTabs.filter((tab) =>
+        tab.table.sourceName.startsWith("Pasted table"),
+      ).length;
+      let nextPastedNumber = pastedCount + 1;
+
+      const newTabs = nextTables.map((tableData) => {
+        const sourceName =
+          tableData.sourceName === "Pasted table"
+            ? `Pasted table ${nextPastedNumber++}`
+            : tableData.sourceName;
+        return makeTab(`tab-${nextTabId.current++}`, {
+          ...tableData,
+          sourceName,
+        });
+      });
+
+      setActiveTabId(newTabs[newTabs.length - 1].id);
+      return [...currentTabs, ...newTabs];
+    });
   }
+
+  function handleCloseTab(tabId: string) {
+    setTabs((currentTabs) => {
+      const closingIndex = currentTabs.findIndex((tab) => tab.id === tabId);
+      const nextTabs = currentTabs.filter((tab) => tab.id !== tabId);
+
+      if (activeTabId === tabId) {
+        const fallbackTab = nextTabs[Math.min(closingIndex, nextTabs.length - 1)] ?? null;
+        setActiveTabId(fallbackTab?.id ?? null);
+      }
+
+      return nextTabs;
+    });
+  }
+
+  useEffect(() => {
+    if (!table) {
+      setXKey("");
+      setYKey("");
+      return;
+    }
+
+    const columnKeys = table.columns.map((column) => column.key);
+    if (!columnKeys.includes(xKey)) {
+      setXKey(columnKeys[0] ?? "");
+    }
+
+    if (!columnKeys.includes(yKey)) {
+      setYKey(columnKeys[1] ?? columnKeys[0] ?? "");
+    }
+  }, [table, xKey, yKey]);
 
   const stats = useMemo(() => {
     if (!table || !xKey) {
@@ -54,12 +116,18 @@ export default function App() {
         <header className="top-bar">
           <div>
             <h1>Data Dashboard</h1>
-            <p>CSV, Excel, Ctrl+V로 붙여넣은 데이터를 빠르게 분석하세요.</p>
+            <p>CSV, Excel, Ctrl+V로 붙여넣은 데이터를 탭으로 열어 분석하세요.</p>
           </div>
         </header>
 
         <DataInput onLoad={handleLoad} onError={setError} />
         <ErrorMessage message={error} />
+        <DatasetTabs
+          tabs={tabs}
+          activeTabId={activeTabId}
+          onSelect={setActiveTabId}
+          onClose={handleCloseTab}
+        />
 
         {table ? (
           <>

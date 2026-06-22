@@ -273,3 +273,59 @@ th {
     width: 100%;
   }
 }
+
+
+.dataset-tabs {
+  margin-bottom: 16px;
+}
+
+.tab-list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.dataset-tab {
+  display: inline-flex;
+  align-items: center;
+  max-width: 260px;
+  border: 1px solid #cbd6d2;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.dataset-tab.active {
+  border-color: #244c45;
+  box-shadow: 0 0 0 1px #244c45 inset;
+}
+
+.dataset-tab-button,
+.dataset-tab-close {
+  min-height: 38px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dataset-tab-button {
+  max-width: 210px;
+  padding: 0 10px 0 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #172026;
+}
+
+.dataset-tab-close {
+  width: 34px;
+  color: #65736f;
+  font-size: 1.1rem;
+}
+
+.dataset-tab-close:hover {
+  background: #edf1ef;
+  color: #172026;
+}

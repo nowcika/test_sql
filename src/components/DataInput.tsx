@@ -3,13 +3,13 @@ import { Upload } from "lucide-react";
 import type { RawTable } from "../lib/normalizeTable";
 import { normalizeTable } from "../lib/normalizeTable";
 import { parseCsvFile } from "../lib/parseCsv";
-import { parseExcelFile } from "../lib/parseExcel";
+import { parseExcelSheets } from "../lib/parseExcel";
 import { parsePastedTable } from "../lib/parsePaste";
 import { inferColumnTypes } from "../lib/statistics";
 import type { TableData } from "../types";
 
 type DataInputProps = {
-  onLoad: (table: TableData) => void;
+  onLoad: (tables: TableData[]) => void;
   onError: (message: string) => void;
 };
 
@@ -17,15 +17,18 @@ const unsupportedFileMessage = "CSV 또는 Excel(.xlsx) 파일만 업로드할 �
 const fileFallbackMessage = "파일을 읽는 중 문제가 발생했습니다. 파일 형식을 확인해 주세요.";
 const pasteFallbackMessage = "붙여넣은 데이터를 읽는 중 문제가 발생했습니다. 표 형식을 확인해 주세요.";
 
-async function parseFile(file: File): Promise<RawTable> {
+async function parseFile(file: File): Promise<TableData[]> {
   const fileName = file.name.toLowerCase();
 
   if (fileName.endsWith(".csv")) {
-    return parseCsvFile(file);
+    return [inferColumnTypes(normalizeTable(await parseCsvFile(file), file.name))];
   }
 
   if (fileName.endsWith(".xlsx")) {
-    return parseExcelFile(file);
+    const sheets = await parseExcelSheets(file);
+    return sheets.map(({ sheetName, rows }) =>
+      inferColumnTypes(normalizeTable(rows, `${file.name} - ${sheetName}`)),
+    );
   }
 
   throw new Error(unsupportedFileMessage);
@@ -40,11 +43,14 @@ function errorMessage(error: unknown, fallback: string): string {
 }
 
 export function DataInput({ onLoad, onError }: DataInputProps) {
-  async function handleFile(file: File) {
+  async function handleFiles(files: File[]) {
     try {
-      const rawRows = await parseFile(file);
-      const table = inferColumnTypes(normalizeTable(rawRows, file.name));
-      onLoad(table);
+      const tableGroups = await Promise.all(files.map(parseFile));
+      const tables = tableGroups.flat();
+
+      if (tables.length > 0) {
+        onLoad(tables);
+      }
     } catch (error) {
       onError(errorMessage(error, fileFallbackMessage));
     }
@@ -55,7 +61,7 @@ export function DataInput({ onLoad, onError }: DataInputProps) {
       const table = inferColumnTypes(
         normalizeTable(parsePastedTable(text), "Pasted table"),
       );
-      onLoad(table);
+      onLoad([table]);
     } catch (error) {
       onError(errorMessage(error, pasteFallbackMessage));
     }
@@ -69,11 +75,12 @@ export function DataInput({ onLoad, onError }: DataInputProps) {
         <input
           aria-label="데이터 파일 업로드"
           type="file"
+          multiple
           accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) {
-              void handleFile(file);
+            const files = Array.from(event.target.files ?? []);
+            if (files.length > 0) {
+              void handleFiles(files);
             }
             event.currentTarget.value = "";
           }}
