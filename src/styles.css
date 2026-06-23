@@ -137,7 +137,7 @@ p {
 }
 
 .controls {
-  grid-template-columns: auto minmax(180px, 1fr) minmax(180px, 1fr);
+  grid-template-columns: auto auto minmax(180px, 1fr) minmax(180px, 1fr);
   align-items: end;
   margin-bottom: 16px;
 }
@@ -260,7 +260,7 @@ th {
 
 .chart-options {
   display: grid;
-  grid-template-columns: minmax(180px, 240px) minmax(180px, 240px) 1fr;
+  grid-template-columns: minmax(160px, 220px) auto minmax(180px, 240px) 1fr;
   gap: 12px;
   align-items: end;
   margin-bottom: 16px;
@@ -270,6 +270,13 @@ th {
   display: grid;
   gap: 6px;
   min-width: 0;
+}
+
+.control-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #65736f;
+  font-size: 0.84rem;
 }
 
 .chart-options select {

@@ -18,6 +18,10 @@ export type TableData = {
 
 export type AnalysisMode = "single" | "relationship";
 
+export type DataOrientation = "original" | "transposed";
+
+export type ChartOrientation = "vertical" | "horizontal";
+
 export type ChartType = "bar" | "line" | "pie" | "scatter" | "histogram";
 
 export type MetricKey =

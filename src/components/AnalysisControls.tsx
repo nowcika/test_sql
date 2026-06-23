@@ -1,10 +1,12 @@
-import type { AnalysisMode, ColumnMeta } from "../types";
+import type { AnalysisMode, ColumnMeta, DataOrientation } from "../types";
 
 type AnalysisControlsProps = {
   columns: ColumnMeta[];
   mode: AnalysisMode;
   xKey: string;
   yKey: string;
+  dataOrientation: DataOrientation;
+  onDataOrientationChange: (orientation: DataOrientation) => void;
   onModeChange: (mode: AnalysisMode) => void;
   onXKeyChange: (key: string) => void;
   onYKeyChange: (key: string) => void;
@@ -15,12 +17,32 @@ export function AnalysisControls({
   mode,
   xKey,
   yKey,
+  dataOrientation,
+  onDataOrientationChange,
   onModeChange,
   onXKeyChange,
   onYKeyChange,
 }: AnalysisControlsProps) {
   return (
     <section className="controls" aria-label="분석 설정">
+      <div className="segmented" role="group" aria-label="데이터 방향">
+        <button
+          className={dataOrientation === "original" ? "active" : ""}
+          type="button"
+          aria-pressed={dataOrientation === "original"}
+          onClick={() => onDataOrientationChange("original")}
+        >
+          원본
+        </button>
+        <button
+          className={dataOrientation === "transposed" ? "active" : ""}
+          type="button"
+          aria-pressed={dataOrientation === "transposed"}
+          onClick={() => onDataOrientationChange("transposed")}
+        >
+          전치
+        </button>
+      </div>
       <div className="segmented" role="group" aria-label="분석 모드">
         <button
           className={mode === "single" ? "active" : ""}

@@ -1,11 +1,13 @@
 import { chartTypeOptionsForStats, groupedMetricOptions, metricOptionsForStats } from "../lib/analysisOptions";
-import type { ChartType, GroupedMetricKey, MetricKey, SingleColumnStats, TwoColumnStats } from "../types";
+import type { ChartOrientation, ChartType, GroupedMetricKey, MetricKey, SingleColumnStats, TwoColumnStats } from "../types";
 
 type ChartOptionsProps = {
   stats: SingleColumnStats | TwoColumnStats | null;
   chartType: ChartType;
   visibleMetrics: MetricKey[];
   groupedMetric: GroupedMetricKey;
+  chartOrientation: ChartOrientation;
+  onChartOrientationChange: (orientation: ChartOrientation) => void;
   onChartTypeChange: (chartType: ChartType) => void;
   onVisibleMetricsChange: (metrics: MetricKey[]) => void;
   onGroupedMetricChange: (metric: GroupedMetricKey) => void;
@@ -16,12 +18,15 @@ export function ChartOptions({
   chartType,
   visibleMetrics,
   groupedMetric,
+  chartOrientation,
+  onChartOrientationChange,
   onChartTypeChange,
   onVisibleMetricsChange,
   onGroupedMetricChange,
 }: ChartOptionsProps) {
   const chartOptions = chartTypeOptionsForStats(stats);
   const metricOptions = metricOptionsForStats(stats);
+  const supportsChartOrientation = chartType === "bar" || chartType === "histogram";
 
   function toggleMetric(metric: MetricKey) {
     if (visibleMetrics.includes(metric)) {
@@ -52,6 +57,31 @@ export function ChartOptions({
           ))}
         </select>
       </label>
+
+
+      {supportsChartOrientation ? (
+        <div>
+          <span className="control-label">차트 방향</span>
+          <div className="segmented" role="group" aria-label="차트 방향">
+            <button
+              className={chartOrientation === "vertical" ? "active" : ""}
+              type="button"
+              aria-pressed={chartOrientation === "vertical"}
+              onClick={() => onChartOrientationChange("vertical")}
+            >
+              세로
+            </button>
+            <button
+              className={chartOrientation === "horizontal" ? "active" : ""}
+              type="button"
+              aria-pressed={chartOrientation === "horizontal"}
+              onClick={() => onChartOrientationChange("horizontal")}
+            >
+              가로
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {stats.kind === "grouped-numeric" ? (
         <label>

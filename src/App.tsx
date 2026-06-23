@@ -16,9 +16,12 @@ import {
 } from "./lib/statistics";
 import { loadDefaultDatasets } from "./lib/defaultDatasets";
 import { normalizeChartType } from "./lib/analysisOptions";
+import { transposeTable } from "./lib/transposeTable";
 import type {
   AnalysisMode,
+  ChartOrientation,
   ChartType,
+  DataOrientation,
   GroupedMetricKey,
   MetricKey,
   TableData,
@@ -31,6 +34,8 @@ type AnalysisSettings = {
   chartType: ChartType;
   visibleMetrics: MetricKey[];
   groupedMetric: GroupedMetricKey;
+  dataOrientation: DataOrientation;
+  chartOrientation: ChartOrientation;
 };
 
 const allMetricKeys: MetricKey[] = [
@@ -61,6 +66,8 @@ function initialSettings(table: TableData): AnalysisSettings {
     chartType: "bar",
     visibleMetrics: allMetricKeys,
     groupedMetric: "mean",
+    dataOrientation: "original",
+    chartOrientation: "vertical",
   };
 }
 
@@ -79,6 +86,8 @@ export default function App() {
   const xKey = settings?.xKey ?? "";
   const yKey = settings?.yKey ?? "";
   const groupedMetric = settings?.groupedMetric ?? "mean";
+  const dataOrientation = settings?.dataOrientation ?? "original";
+  const chartOrientation = settings?.chartOrientation ?? "vertical";
 
   function updateActiveSettings(update: (settings: AnalysisSettings) => AnalysisSettings) {
     if (!activeTabId || !settings) {
@@ -88,6 +97,32 @@ export default function App() {
     setSettingsByTabId((currentSettings) => ({
       ...currentSettings,
       [activeTabId]: update(settings),
+    }));
+  }
+
+
+  function handleDataOrientationChange(nextOrientation: DataOrientation) {
+    if (!activeTabId || !activeTab || !settings) {
+      return;
+    }
+
+    const nextTable = nextOrientation === "transposed"
+      ? transposeTable(activeTab.table)
+      : activeTab.table;
+    const nextColumnKeys = new Set(nextTable.columns.map((column) => column.key));
+
+    setSettingsByTabId((currentSettings) => ({
+      ...currentSettings,
+      [activeTabId]: {
+        ...settings,
+        dataOrientation: nextOrientation,
+        xKey: nextColumnKeys.has(settings.xKey)
+          ? settings.xKey
+          : nextTable.columns[0]?.key ?? "",
+        yKey: nextColumnKeys.has(settings.yKey)
+          ? settings.yKey
+          : nextTable.columns[1]?.key ?? nextTable.columns[0]?.key ?? "",
+      },
     }));
   }
 
@@ -160,25 +195,33 @@ export default function App() {
       });
   }, []);
 
+  const effectiveTable = useMemo(() => {
+    if (!table) {
+      return null;
+    }
+
+    return dataOrientation === "transposed" ? transposeTable(table) : table;
+  }, [dataOrientation, table]);
+
   const stats = useMemo(() => {
-    if (!table || !xKey) {
+    if (!effectiveTable || !xKey) {
       return null;
     }
 
     try {
       if (mode === "single") {
-        return calculateSingleColumnStats(table, xKey);
+        return calculateSingleColumnStats(effectiveTable, xKey);
       }
 
       if (!yKey) {
         return null;
       }
 
-      return calculateTwoColumnStats(table, xKey, yKey);
+      return calculateTwoColumnStats(effectiveTable, xKey, yKey);
     } catch {
       return null;
     }
-  }, [mode, table, xKey, yKey]);
+  }, [effectiveTable, mode, xKey, yKey]);
 
   const chartType = stats ? normalizeChartType(stats, settings?.chartType ?? "bar") : "bar";
   const visibleMetrics = settings?.visibleMetrics ?? allMetricKeys;
@@ -202,14 +245,16 @@ export default function App() {
           onClose={handleCloseTab}
         />
 
-        {table ? (
+        {effectiveTable ? (
           <>
-            <DatasetSummary table={table} />
+            <DatasetSummary table={effectiveTable} />
             <AnalysisControls
-              columns={table.columns}
+              columns={effectiveTable.columns}
               mode={mode}
               xKey={xKey}
               yKey={yKey}
+              dataOrientation={dataOrientation}
+              onDataOrientationChange={handleDataOrientationChange}
               onModeChange={(nextMode) =>
                 updateActiveSettings((currentSettings) => ({
                   ...currentSettings,
@@ -234,6 +279,13 @@ export default function App() {
               chartType={chartType}
               visibleMetrics={visibleMetrics}
               groupedMetric={groupedMetric}
+              chartOrientation={chartOrientation}
+              onChartOrientationChange={(nextChartOrientation) =>
+                updateActiveSettings((currentSettings) => ({
+                  ...currentSettings,
+                  chartOrientation: nextChartOrientation,
+                }))
+              }
               onChartTypeChange={(nextChartType) =>
                 updateActiveSettings((currentSettings) => ({
                   ...currentSettings,
@@ -255,9 +307,14 @@ export default function App() {
             />
             <section className="analysis-grid">
               <StatsPanel stats={stats} visibleMetrics={visibleMetrics} />
-              <ChartPanel stats={stats} chartType={chartType} groupedMetric={groupedMetric} />
+              <ChartPanel
+                stats={stats}
+                chartType={chartType}
+                groupedMetric={groupedMetric}
+                chartOrientation={chartOrientation}
+              />
             </section>
-            <DataPreview table={table} />
+            <DataPreview table={effectiveTable} />
           </>
         ) : (
           <section className="panel empty-state">

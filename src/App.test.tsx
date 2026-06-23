@@ -5,8 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
 vi.mock("./components/ChartPanel", () => ({
-  ChartPanel: ({ chartType }: { chartType?: string }) => (
-    <section aria-label={chartType === "histogram" ? "히스토그램 차트" : "chart"}>Chart</section>
+  ChartPanel: ({ chartType, chartOrientation }: { chartType?: string; chartOrientation?: string }) => (
+    <section aria-label={chartType === "histogram" ? "히스토그램 차트" : chartOrientation === "horizontal" ? "가로 차트" : "chart"}>
+      Chart
+    </section>
   ),
 }));
 
@@ -153,6 +155,65 @@ describe("App", () => {
     expect(screen.getByLabelText("차트 타입")).toHaveValue("histogram");
     numericStats = screen.getByLabelText("숫자 통계");
     expect(within(numericStats).queryByText("Variance")).not.toBeInTheDocument();
+  });
+
+
+  it("lets users transpose table data per tab", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const pasteTarget = screen.getByLabelText("표 데이터 붙여넣기");
+    await user.click(pasteTarget);
+    await user.paste("Metric\tQ1\tQ2\nSales\t10\t20\nProfit\t1\t2");
+
+    expect(await screen.findByRole("tab", { name: /Pasted table 1/ })).toBeInTheDocument();
+    expect(screen.getByLabelText("컬럼")).toHaveValue("metric");
+
+    await user.click(screen.getByRole("button", { name: "전치" }));
+    expect(screen.getByRole("button", { name: "전치" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText("컬럼")).toHaveValue("metric");
+
+    await user.selectOptions(screen.getByLabelText("컬럼"), "sales");
+    expect(within(screen.getByLabelText("숫자 통계")).getByText("Sum")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("숫자 통계")).getByText("30")).toBeInTheDocument();
+
+    await user.click(pasteTarget);
+    await user.paste("Item\tStock\nA\t4\nB\t6");
+    expect(await screen.findByRole("tab", { name: /Pasted table 2/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "원본" })).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("tab", { name: /Pasted table 1/ }));
+    expect(screen.getByRole("button", { name: "전치" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText("컬럼")).toHaveValue("sales");
+  });
+
+  it("lets users switch chart direction per tab", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const pasteTarget = screen.getByLabelText("표 데이터 붙여넣기");
+    await user.click(pasteTarget);
+    await user.paste("Region\tSales\nEast\t10\nWest\t20");
+
+    expect(await screen.findByRole("tab", { name: /Pasted table 1/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "가로" }));
+
+    expect(screen.getByRole("button", { name: "가로" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText("가로 차트")).toBeInTheDocument();
+
+    await user.click(pasteTarget);
+    await user.paste("Item\tStock\nA\t4\nB\t6");
+    expect(await screen.findByRole("tab", { name: /Pasted table 2/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "세로" })).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("tab", { name: /Pasted table 1/ }));
+    expect(screen.getByRole("button", { name: "가로" })).toHaveAttribute("aria-pressed", "true");
   });
 
 });

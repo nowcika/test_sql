@@ -20,19 +20,32 @@ import {
   buildSingleColumnChartData,
   buildTwoColumnChartData,
 } from "../lib/chartData";
-import type { ChartType, GroupedMetricKey, SingleColumnStats, TwoColumnStats } from "../types";
+import type { ChartOrientation, ChartType, GroupedMetricKey, SingleColumnStats, TwoColumnStats } from "../types";
 
 type ChartPanelProps = {
   stats: SingleColumnStats | TwoColumnStats | null;
   chartType?: ChartType;
   groupedMetric?: GroupedMetricKey;
+  chartOrientation?: ChartOrientation;
 };
 
 const colors = ["#2d6f65", "#5f8f3e", "#b46b3c", "#6b6fb4", "#b45273", "#4b8da8"];
 
-function BarLikeChart({ data, type, label }: { data: unknown[]; type: "bar" | "line"; label: string }) {
+function BarLikeChart({
+  data,
+  type,
+  label,
+  orientation = "vertical",
+}: {
+  data: unknown[];
+  type: "bar" | "line";
+  label: string;
+  orientation?: ChartOrientation;
+}) {
+  const ariaLabel = type === "bar" && orientation === "horizontal" ? "가로 막대 차트" : label;
+
   return (
-    <section className="panel chart-panel" aria-label={label}>
+    <section className="panel chart-panel" aria-label={ariaLabel}>
       <ResponsiveContainer width="100%" height={320}>
         {type === "line" ? (
           <LineChart data={data}>
@@ -42,6 +55,14 @@ function BarLikeChart({ data, type, label }: { data: unknown[]; type: "bar" | "l
             <Tooltip />
             <Line type="monotone" dataKey="value" stroke="#2d6f65" strokeWidth={2} dot />
           </LineChart>
+        ) : orientation === "horizontal" ? (
+          <BarChart data={data} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis type="number" />
+            <YAxis dataKey="label" type="category" width={90} />
+            <Tooltip />
+            <Bar dataKey="value" fill="#2d6f65" />
+          </BarChart>
         ) : (
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -73,7 +94,12 @@ function PieLikeChart({ data }: { data: { label: string; value: number }[] }) {
   );
 }
 
-export function ChartPanel({ stats, chartType = "bar", groupedMetric = "mean" }: ChartPanelProps) {
+export function ChartPanel({
+  stats,
+  chartType = "bar",
+  groupedMetric = "mean",
+  chartOrientation = "vertical",
+}: ChartPanelProps) {
   if (!stats) {
     return (
       <section className="panel chart-panel">
@@ -110,11 +136,25 @@ export function ChartPanel({ stats, chartType = "bar", groupedMetric = "mean" }:
     if (chartType === "pie") {
       return <PieLikeChart data={chartData} />;
     }
-    return <BarLikeChart data={chartData} type={chartType === "line" ? "line" : "bar"} label={chartType === "line" ? "라인 차트" : "그룹 차트"} />;
+    return (
+      <BarLikeChart
+        data={chartData}
+        type={chartType === "line" ? "line" : "bar"}
+        label={chartType === "line" ? "라인 차트" : "그룹 차트"}
+        orientation={chartOrientation}
+      />
+    );
   }
 
   if (stats.kind === "numeric" && chartType === "histogram") {
-    return <BarLikeChart data={buildHistogramData(stats)} type="bar" label="히스토그램 차트" />;
+    return (
+      <BarLikeChart
+        data={buildHistogramData(stats)}
+        type="bar"
+        label="히스토그램 차트"
+        orientation={chartOrientation}
+      />
+    );
   }
 
   const data = buildSingleColumnChartData(stats) as { label: string; value: number }[];
@@ -122,5 +162,12 @@ export function ChartPanel({ stats, chartType = "bar", groupedMetric = "mean" }:
     return <PieLikeChart data={data} />;
   }
 
-  return <BarLikeChart data={data} type={chartType === "line" ? "line" : "bar"} label={chartType === "line" ? "라인 차트" : "단일 컬럼 차트"} />;
+  return (
+    <BarLikeChart
+      data={data}
+      type={chartType === "line" ? "line" : "bar"}
+      label={chartType === "line" ? "라인 차트" : "단일 컬럼 차트"}
+      orientation={chartOrientation}
+    />
+  );
 }
