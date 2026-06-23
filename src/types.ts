@@ -18,7 +18,7 @@ export type TableData = {
 
 export type AnalysisMode = "single" | "relationship";
 
-export type DataOrientation = "original" | "transposed";
+export type DataOrientation = "original" | "transposed" | "matrix";
 
 export type ChartOrientation = "vertical" | "horizontal";
 
@@ -94,3 +94,16 @@ export type GroupedNumericStats = {
 };
 
 export type TwoColumnStats = NumericRelationshipStats | GroupedNumericStats;
+
+export type MatrixStats = {
+  kind: "matrix";
+  xLabels: string[];
+  series: {
+    label: string;
+    values: { x: string; value: number | null }[];
+  }[];
+  valueCount: number;
+  missingCount: number;
+};
+
+export type AnalysisStats = SingleColumnStats | TwoColumnStats | MatrixStats;

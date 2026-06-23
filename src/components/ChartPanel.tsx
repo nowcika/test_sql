@@ -20,10 +20,10 @@ import {
   buildSingleColumnChartData,
   buildTwoColumnChartData,
 } from "../lib/chartData";
-import type { ChartOrientation, ChartType, GroupedMetricKey, SingleColumnStats, TwoColumnStats } from "../types";
+import type { AnalysisStats, ChartOrientation, ChartType, GroupedMetricKey, MatrixStats } from "../types";
 
 type ChartPanelProps = {
-  stats: SingleColumnStats | TwoColumnStats | null;
+  stats: AnalysisStats | null;
   chartType?: ChartType;
   groupedMetric?: GroupedMetricKey;
   chartOrientation?: ChartOrientation;
@@ -77,6 +77,76 @@ function BarLikeChart({
   );
 }
 
+
+function buildMatrixChartData(stats: MatrixStats) {
+  return stats.xLabels.map((xLabel) => {
+    const row: Record<string, string | number> = { label: xLabel };
+    for (const series of stats.series) {
+      const point = series.values.find((value) => value.x === xLabel);
+      row[series.label] = point?.value ?? 0;
+    }
+    return row;
+  });
+}
+
+function MatrixChart({
+  stats,
+  chartType,
+  orientation,
+}: {
+  stats: MatrixStats;
+  chartType: ChartType;
+  orientation: ChartOrientation;
+}) {
+  const data = buildMatrixChartData(stats);
+  const ariaLabel = orientation === "horizontal" && chartType === "bar" ? "가로 매트릭스 차트" : "매트릭스 차트";
+
+  return (
+    <section className="panel chart-panel" aria-label={ariaLabel}>
+      <ResponsiveContainer width="100%" height={320}>
+        {chartType === "line" ? (
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="label" />
+            <YAxis />
+            <Tooltip />
+            {stats.series.map((series, index) => (
+              <Line
+                key={series.label}
+                type="monotone"
+                dataKey={series.label}
+                stroke={colors[index % colors.length]}
+                strokeWidth={2}
+                dot
+              />
+            ))}
+          </LineChart>
+        ) : orientation === "horizontal" ? (
+          <BarChart data={data} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis type="number" />
+            <YAxis dataKey="label" type="category" width={90} />
+            <Tooltip />
+            {stats.series.map((series, index) => (
+              <Bar key={series.label} dataKey={series.label} fill={colors[index % colors.length]} />
+            ))}
+          </BarChart>
+        ) : (
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="label" />
+            <YAxis />
+            <Tooltip />
+            {stats.series.map((series, index) => (
+              <Bar key={series.label} dataKey={series.label} fill={colors[index % colors.length]} />
+            ))}
+          </BarChart>
+        )}
+      </ResponsiveContainer>
+    </section>
+  );
+}
+
 function PieLikeChart({ data }: { data: { label: string; value: number }[] }) {
   return (
     <section className="panel chart-panel" aria-label="파이 차트">
@@ -106,6 +176,10 @@ export function ChartPanel({
         차트를 표시할 분석 결과가 없습니다.
       </section>
     );
+  }
+
+  if (stats.kind === "matrix") {
+    return <MatrixChart stats={stats} chartType={chartType} orientation={chartOrientation} />;
   }
 
   if (stats.kind === "numeric-relationship") {

@@ -42,53 +42,60 @@ export function AnalysisControls({
         >
           전치
         </button>
-      </div>
-      <div className="segmented" role="group" aria-label="분석 모드">
         <button
-          className={mode === "single" ? "active" : ""}
+          className={dataOrientation === "matrix" ? "active" : ""}
           type="button"
-          aria-pressed={mode === "single"}
-          onClick={() => onModeChange("single")}
+          aria-pressed={dataOrientation === "matrix"}
+          onClick={() => onDataOrientationChange("matrix")}
         >
-          단일 컬럼
-        </button>
-        <button
-          className={mode === "relationship" ? "active" : ""}
-          type="button"
-          aria-pressed={mode === "relationship"}
-          onClick={() => onModeChange("relationship")}
-        >
-          두 컬럼 관계
+          매트릭스
         </button>
       </div>
-      <label>
-        <span>{mode === "single" ? "컬럼" : "첫 번째 컬럼"}</span>
-        <select
-          value={xKey}
-          onChange={(event) => onXKeyChange(event.target.value)}
-        >
-          {columns.map((column) => (
-            <option key={column.key} value={column.key}>
-              {column.label} ({column.inferredType})
-            </option>
-          ))}
-        </select>
-      </label>
-      {mode === "relationship" ? (
-        <label>
-          <span>두 번째 컬럼</span>
-          <select
-            value={yKey}
-            onChange={(event) => onYKeyChange(event.target.value)}
-          >
-            {columns.map((column) => (
-              <option key={column.key} value={column.key}>
-                {column.label} ({column.inferredType})
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
+
+      {dataOrientation === "matrix" ? null : (
+        <>
+          <div className="segmented" role="group" aria-label="분석 모드">
+            <button
+              className={mode === "single" ? "active" : ""}
+              type="button"
+              aria-pressed={mode === "single"}
+              onClick={() => onModeChange("single")}
+            >
+              단일 컬럼
+            </button>
+            <button
+              className={mode === "relationship" ? "active" : ""}
+              type="button"
+              aria-pressed={mode === "relationship"}
+              onClick={() => onModeChange("relationship")}
+            >
+              두 컬럼 관계
+            </button>
+          </div>
+          <label>
+            <span>{mode === "single" ? "컬럼" : "첫 번째 컬럼"}</span>
+            <select value={xKey} onChange={(event) => onXKeyChange(event.target.value)}>
+              {columns.map((column) => (
+                <option key={column.key} value={column.key}>
+                  {column.label} ({column.inferredType})
+                </option>
+              ))}
+            </select>
+          </label>
+          {mode === "relationship" ? (
+            <label>
+              <span>두 번째 컬럼</span>
+              <select value={yKey} onChange={(event) => onYKeyChange(event.target.value)}>
+                {columns.map((column) => (
+                  <option key={column.key} value={column.key}>
+                    {column.label} ({column.inferredType})
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </>
+      )}
     </section>
   );
 }

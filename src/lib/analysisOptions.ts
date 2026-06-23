@@ -1,4 +1,4 @@
-import type { ChartType, GroupedMetricKey, MetricKey, SingleColumnStats, TwoColumnStats } from "../types";
+import type { AnalysisStats, ChartType, GroupedMetricKey, MetricKey } from "../types";
 
 export type MetricOption = { key: MetricKey; label: string };
 export type ChartTypeOption = { key: ChartType; label: string };
@@ -13,7 +13,7 @@ export const groupedMetricOptions: { key: GroupedMetricKey; label: string }[] = 
   { key: "standardDeviation", label: "Std dev" },
 ];
 
-export function metricOptionsForStats(stats: SingleColumnStats | TwoColumnStats | null): MetricOption[] {
+export function metricOptionsForStats(stats: AnalysisStats | null): MetricOption[] {
   if (!stats) {
     return [];
   }
@@ -48,14 +48,22 @@ export function metricOptionsForStats(stats: SingleColumnStats | TwoColumnStats 
     ];
   }
 
+  if (stats.kind === "matrix") {
+    return [
+      { key: "count", label: "Values" },
+      { key: "missing", label: "Missing" },
+      { key: "unique", label: "Series" },
+    ];
+  }
+
   return groupedMetricOptions.map((option) => option as MetricOption);
 }
 
-export function defaultMetricKeys(stats: SingleColumnStats | TwoColumnStats | null): MetricKey[] {
+export function defaultMetricKeys(stats: AnalysisStats | null): MetricKey[] {
   return metricOptionsForStats(stats).map((option) => option.key);
 }
 
-export function chartTypeOptionsForStats(stats: SingleColumnStats | TwoColumnStats | null): ChartTypeOption[] {
+export function chartTypeOptionsForStats(stats: AnalysisStats | null): ChartTypeOption[] {
   if (!stats) {
     return [{ key: "bar", label: "Bar" }];
   }
@@ -82,6 +90,13 @@ export function chartTypeOptionsForStats(stats: SingleColumnStats | TwoColumnSta
     ];
   }
 
+  if (stats.kind === "matrix") {
+    return [
+      { key: "bar", label: "Bar" },
+      { key: "line", label: "Line" },
+    ];
+  }
+
   return [
     { key: "bar", label: "Bar" },
     { key: "line", label: "Line" },
@@ -90,7 +105,7 @@ export function chartTypeOptionsForStats(stats: SingleColumnStats | TwoColumnSta
 }
 
 export function normalizeChartType(
-  stats: SingleColumnStats | TwoColumnStats | null,
+  stats: AnalysisStats | null,
   chartType: ChartType,
 ): ChartType {
   const options = chartTypeOptionsForStats(stats);

@@ -1,7 +1,7 @@
-import type { MetricKey, SingleColumnStats, TwoColumnStats } from "../types";
+import type { AnalysisStats, MetricKey } from "../types";
 
 type StatsPanelProps = {
-  stats: SingleColumnStats | TwoColumnStats | null;
+  stats: AnalysisStats | null;
   visibleMetrics?: MetricKey[];
 };
 
@@ -63,6 +63,17 @@ export function StatsPanel({ stats, visibleMetrics }: StatsPanelProps) {
             ))}
           </ul>
         ) : null}
+      </section>
+    );
+  }
+
+  if (stats.kind === "matrix") {
+    return (
+      <section className="panel stats-grid" aria-label="매트릭스 통계">
+        {isVisible(visibleMetrics, "unique") ? <StatItem label="Series" value={stats.series.length} /> : null}
+        {isVisible(visibleMetrics, "count") ? <StatItem label="X values" value={stats.xLabels.length} /> : null}
+        {isVisible(visibleMetrics, "count") ? <StatItem label="Values" value={stats.valueCount} /> : null}
+        {isVisible(visibleMetrics, "missing") ? <StatItem label="Missing" value={stats.missingCount} /> : null}
       </section>
     );
   }

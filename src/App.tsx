@@ -16,6 +16,7 @@ import {
 } from "./lib/statistics";
 import { loadDefaultDatasets } from "./lib/defaultDatasets";
 import { normalizeChartType } from "./lib/analysisOptions";
+import { matrixToLongTable, calculateMatrixStats } from "./lib/matrixTable";
 import { transposeTable } from "./lib/transposeTable";
 import type {
   AnalysisMode,
@@ -108,7 +109,9 @@ export default function App() {
 
     const nextTable = nextOrientation === "transposed"
       ? transposeTable(activeTab.table)
-      : activeTab.table;
+      : nextOrientation === "matrix"
+        ? matrixToLongTable(activeTab.table)
+        : activeTab.table;
     const nextColumnKeys = new Set(nextTable.columns.map((column) => column.key));
 
     setSettingsByTabId((currentSettings) => ({
@@ -200,11 +203,27 @@ export default function App() {
       return null;
     }
 
-    return dataOrientation === "transposed" ? transposeTable(table) : table;
+    if (dataOrientation === "transposed") {
+      return transposeTable(table);
+    }
+
+    if (dataOrientation === "matrix") {
+      return matrixToLongTable(table);
+    }
+
+    return table;
   }, [dataOrientation, table]);
 
   const stats = useMemo(() => {
-    if (!effectiveTable || !xKey) {
+    if (!effectiveTable) {
+      return null;
+    }
+
+    if (dataOrientation === "matrix" && table) {
+      return calculateMatrixStats(table);
+    }
+
+    if (!xKey) {
       return null;
     }
 
@@ -221,7 +240,7 @@ export default function App() {
     } catch {
       return null;
     }
-  }, [effectiveTable, mode, xKey, yKey]);
+  }, [dataOrientation, effectiveTable, mode, table, xKey, yKey]);
 
   const chartType = stats ? normalizeChartType(stats, settings?.chartType ?? "bar") : "bar";
   const visibleMetrics = settings?.visibleMetrics ?? allMetricKeys;

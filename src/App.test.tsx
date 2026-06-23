@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
 vi.mock("./components/ChartPanel", () => ({
-  ChartPanel: ({ chartType, chartOrientation }: { chartType?: string; chartOrientation?: string }) => (
-    <section aria-label={chartType === "histogram" ? "히스토그램 차트" : chartOrientation === "horizontal" ? "가로 차트" : "chart"}>
+  ChartPanel: ({ chartType, chartOrientation, stats }: { chartType?: string; chartOrientation?: string; stats?: { kind: string } }) => (
+    <section aria-label={stats?.kind === "matrix" ? "매트릭스 차트" : chartType === "histogram" ? "히스토그램 차트" : chartOrientation === "horizontal" ? "가로 차트" : "chart"}>
       Chart
     </section>
   ),
@@ -214,6 +214,32 @@ describe("App", () => {
 
     await user.click(screen.getByRole("tab", { name: /Pasted table 1/ }));
     expect(screen.getByRole("button", { name: "가로" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+
+  it("shows matrix tables as x, series, value charts", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const pasteTarget = screen.getByLabelText("표 데이터 붙여넣기");
+    await user.click(pasteTarget);
+    await user.paste("Metric\tJan\tFeb\nSales\t100\t120\nProfit\t20\t30");
+
+    expect(await screen.findByRole("tab", { name: /Pasted table 1/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "매트릭스" }));
+
+    expect(screen.getByRole("button", { name: "매트릭스" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText("매트릭스 차트")).toBeInTheDocument();
+
+    const stats = screen.getByLabelText("매트릭스 통계");
+    expect(within(stats).getByText("X values")).toBeInTheDocument();
+    expect(within(stats).getByText("Series")).toBeInTheDocument();
+    expect(within(stats).getByText("Values")).toBeInTheDocument();
+
+    expect(screen.getByRole("columnheader", { name: "X" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Series" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Value" })).toBeInTheDocument();
+    expect(screen.getByRole("row", { name: "Jan Sales 100" })).toBeInTheDocument();
   });
 
 });

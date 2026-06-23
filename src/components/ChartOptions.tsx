@@ -1,8 +1,8 @@
 import { chartTypeOptionsForStats, groupedMetricOptions, metricOptionsForStats } from "../lib/analysisOptions";
-import type { ChartOrientation, ChartType, GroupedMetricKey, MetricKey, SingleColumnStats, TwoColumnStats } from "../types";
+import type { AnalysisStats, ChartOrientation, ChartType, GroupedMetricKey, MetricKey } from "../types";
 
 type ChartOptionsProps = {
-  stats: SingleColumnStats | TwoColumnStats | null;
+  stats: AnalysisStats | null;
   chartType: ChartType;
   visibleMetrics: MetricKey[];
   groupedMetric: GroupedMetricKey;
